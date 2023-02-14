@@ -9,6 +9,16 @@
 
 ## Linux
 
+### Dependencies
+
+#### Arch
+
+- `sudo pacman -S xcb-proto`
+
+### Building 
+
+- `git clone https://github.com/bwkam/rwm.git`
+- `cd rwm`
 - `chmod +x build.sh`
 - `./build.sh`
 
