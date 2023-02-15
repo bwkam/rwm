@@ -95,40 +95,40 @@ int main(int argc, char *argv[]) {
   for (;;) {
     ev = xcb_wait_for_event(conn);
     switch (ev->response_type & ~0x80) {
-    case XCB_MAP_REQUEST: {
-      xcb_map_request_event_t *e = (xcb_map_request_event_t *)ev;
-      xcb_map_window(conn, e->window);
-      uint32_t vals[4];
-      vals[0] = (screen->width_in_pixels / 2) - (600 / 2);
-      vals[1] = (screen->height_in_pixels / 2) - (400 / 2);
-      vals[2] = 600;
-      vals[3] = 400;
+      case XCB_MAP_REQUEST: {
+        xcb_map_request_event_t *e = (xcb_map_request_event_t *)ev;
+        xcb_map_window(conn, e->window);
+        uint32_t vals[4];
+        vals[0] = (screen->width_in_pixels / 2) - (600 / 2);
+        vals[1] = (screen->height_in_pixels / 2) - (400 / 2);
+        vals[2] = 600;
+        vals[3] = 400;
 
-      xcb_configure_window(conn, e->window,
-                           XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-                               XCB_CONFIG_WINDOW_WIDTH |
-                               XCB_CONFIG_WINDOW_HEIGHT,
-                           vals);
-      xcb_flush(conn);
+        xcb_configure_window(conn, e->window,
+                            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+                                XCB_CONFIG_WINDOW_WIDTH |
+                                XCB_CONFIG_WINDOW_HEIGHT,
+                            vals);
+        xcb_flush(conn);
 
-      values[0] = XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE;
+        values[0] = XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_FOCUS_CHANGE;
 
-      xcb_change_window_attributes(conn, e->window, XCB_CW_EVENT_MASK, values);
-      set_focus(e->window);
-    } break;
-    case XCB_KEY_PRESS: {
-      xcb_key_press_event_t *e = (xcb_key_press_event_t *)ev;
-      xcb_keysym_t keysym = xcb_get_keysym(e->detail);
-      *win = e->child;
-      int key_table_size = sizeof(keys) / sizeof(*keys);
-      for (int i = 0; i < key_table_size; ++i) {
-        if ((keys[i].keysym == keysym) && (keys[i].mod == e->state)) {
-          keys[i].func(keys[i].com);
+        xcb_change_window_attributes(conn, e->window, XCB_CW_EVENT_MASK, values);
+        set_focus(e->window);
+      } break;
+      case XCB_KEY_PRESS: {
+        xcb_key_press_event_t *e = (xcb_key_press_event_t *)ev;
+        xcb_keysym_t keysym = xcb_get_keysym(e->detail);
+        win = e->child;
+        int key_table_size = sizeof(keys) / sizeof(*keys);
+        for (int i = 0; i < key_table_size; ++i) {
+          if ((keys[i].keysym == keysym) && (keys[i].mod == e->state)) {
+            keys[i].func(keys[i].com);
+          }
         }
+      } break;
+        free(ev);
       }
-    } break;
-      free(ev);
-    }
   }
   return 0;
 }
