@@ -11,6 +11,8 @@ typedef struct {
   char **com;
 } Key;
 
+static void spawn(char **com);
+
 static xcb_keycode_t *xcb_get_keycodes(xcb_keysym_t keysym);
 static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode);
 

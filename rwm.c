@@ -1,7 +1,11 @@
 #include "rwm.h"
+#include "config.h"
 #include <stdint.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/xcb_util.h>
 #include <xcb/xproto.h>
 
 static xcb_connection_t *conn;
@@ -9,6 +13,35 @@ static xcb_drawable_t *win;
 static xcb_screen_t *screen;
 static xcb_generic_event_t *ev;
 static uint32_t values[3];
+
+static void spawn(char **com) {
+  if (fork() == 0) {
+    setsid();
+    if (fork() != 0) {
+      _exit(0);
+    }
+    execvp((char *)com[0], (char **)com);
+    _exit(0);
+  }
+  wait(NULL);
+}
+
+static xcb_keycode_t *xcb_get_keycodes(xcb_keysym_t keysym) {
+  xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(conn);
+  xcb_keycode_t *keycode;
+  keycode = (!(keysyms) ? NULL : xcb_key_symbols_get_keycode(keysyms, keysym));
+  xcb_key_symbols_free(keysyms);
+  return keycode;
+}
+
+static xcb_keysym_t xcb_get_keysym(xcb_keycode_t keycode) {
+  xcb_key_symbols_t *keysyms = xcb_key_symbols_alloc(conn);
+  xcb_keysym_t keysym;
+  keysym = (!(keysyms) ? 0 : xcb_key_symbols_get_keysym(keysyms, keycode, 0));
+  xcb_key_symbols_free(keysyms);
+  return keysym;
+}
+
 static void set_focus(xcb_drawable_t window) {
   if ((window != 0) && (window != screen->root)) {
     xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT, window,
@@ -33,6 +66,15 @@ static void init_wm(void) {
   xcb_change_window_attributes(conn, screen->root, XCB_CW_EVENT_MASK, values);
 
   xcb_ungrab_key(conn, XCB_GRAB_ANY, screen->root, XCB_MOD_MASK_ANY);
+
+  int key_table_size = sizeof(keys) / sizeof(*keys);
+  for (int i = 0; i < key_table_size; ++i) {
+    xcb_keycode_t *keycode = xcb_get_keycodes(keys[i].keysym);
+    if (keycode != NULL) {
+      xcb_grab_key(conn, 1, screen->root, keys[i].mod, *keycode,
+                   XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    }
+  }
 
   xcb_flush(conn);
 
@@ -73,6 +115,17 @@ int main(int argc, char *argv[]) {
 
       xcb_change_window_attributes(conn, e->window, XCB_CW_EVENT_MASK, values);
       set_focus(e->window);
+    } break;
+    case XCB_KEY_PRESS: {
+      xcb_key_press_event_t *e = (xcb_key_press_event_t *)ev;
+      xcb_keysym_t keysym = xcb_get_keysym(e->detail);
+      *win = e->child;
+      int key_table_size = sizeof(keys) / sizeof(*keys);
+      for (int i = 0; i < key_table_size; ++i) {
+        if ((keys[i].keysym == keysym) && (keys[i].mod == e->state)) {
+          keys[i].func(keys[i].com);
+        }
+      }
     } break;
       free(ev);
     }
