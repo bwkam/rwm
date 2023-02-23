@@ -163,6 +163,7 @@ int main(int argc, char *argv[])
     break;
     case XCB_BUTTON_PRESS:
     {
+      die("hi");
       xcb_button_press_event_t *e = (xcb_button_press_event_t *)ev;
       values[0] = XCB_STACK_MODE_ABOVE;
       xcb_configure_window(conn, e->child, XCB_CONFIG_WINDOW_STACK_MODE,
